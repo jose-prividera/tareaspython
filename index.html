@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📋 Proyectos / Automatizaciones</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:    #003F6E;
+      --primary-d:  #002d50;
+      --primary-l:  #004f8b;
+      --primary-xl: #e8f1f8;
+      --primary-xs: #f0f6fb;
+      --accent:     #0072c6;
+      --bg:         #f5f7fa;
+      --surface:    #ffffff;
+      --surface2:   #f0f4f8;
+      --surface3:   #e4ecf4;
+      --border:     #dde5ee;
+      --border2:    #c8d6e5;
+      --text:       #0d1f2d;
+      --text2:      #2c4a63;
+      --muted:      #5a7a96;
+      --muted2:     #8aaac4;
+      --green:      #16a34a;
+      --green-bg:   #dcfce7;
+      --yellow:     #b45309;
+      --yellow-bg:  #fef3c7;
+      --orange:     #c2410c;
+      --orange-bg:  #ffedd5;
+      --red:        #dc2626;
+      --red-bg:     #fee2e2;
+      --purple:     #7c3aed;
+      --purple-bg:  #ede9fe;
+      --sync-ok:    #16a34a;
+      --sync-err:   #dc2626;
+      --sync-pend:  #b45309;
+    }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    .app { display: flex; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: 240px; min-width: 240px; background: var(--primary); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo { padding: 22px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .sidebar-logo .icon { font-size: 22px; margin-bottom: 5px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 800; color: #fff; line-height: 1.35; }
+    .sidebar-logo p { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+    .sidebar-nav { padding: 12px 8px; flex: 1; }
+    .nav-section { margin-bottom: 20px; }
+    .nav-section-title { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.38); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 10px; margin-bottom: 5px; }
+    .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 700; }
+    .nav-badge { margin-left: auto; background: rgba(255,255,255,0.15); border-radius: 99px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.8); padding: 1px 7px; }
+    .nav-item.active .nav-badge { background: rgba(255,255,255,0.3); color: #fff; }
+
+    /* SYNC STATUS in sidebar */
+    .sync-status-bar { padding: 10px 14px; margin: 0 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; flex-shrink: 0; }
+    .sync-dot.ok   { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
+    .sync-dot.err  { background: #f87171; }
+    .sync-dot.pend { background: #fbbf24; animation: pulse 1.2s infinite; }
+    .sync-dot.none { background: rgba(255,255,255,0.3); }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+    .sync-label { font-size: 11px; color: rgba(255,255,255,0.65); font-weight: 600; }
+    .sync-time  { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+    .main { flex: 1; overflow: hidden; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 13px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; position: sticky; top: 0; z-index: 20; box-shadow: 0 1px 4px rgba(0,63,110,0.07); }
+    .topbar-title { font-size: 15px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .topbar-title span { color: var(--muted); font-weight: 400; font-size: 13px; }
+    .topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn { padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-primary  { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-l); }
+    .btn-secondary{ background: var(--surface); color: var(--text2); border-color: var(--border2); }
+    .btn-secondary:hover { background: var(--surface2); }
+    .btn-danger   { background: var(--red-bg); color: var(--red); border-color: #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-photo    { background: var(--primary-xl); color: var(--primary); border-color: var(--border2); }
+    .btn-photo:hover { background: #d6e8f5; border-color: var(--accent); }
+    .btn-sync     { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .btn-sync:hover { background: #bbf7d0; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .content { padding: 24px 28px; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* SHEETS CONFIG BANNER */
+    .sheets-banner { background: linear-gradient(135deg, #e8f1f8 0%, #f0f6fb 100%); border: 1px solid var(--border2); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .sheets-banner.connected { background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); border-color: #86efac; }
+    .sheets-banner.error { background: linear-gradient(135deg, #fee2e2 0%, #fff5f5 100%); border-color: #fca5a5; }
+    .sheets-banner-info { display: flex; align-items: center; gap: 10px; }
+    .sheets-banner-text h4 { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .sheets-banner-text p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .sheets-url-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .sheets-url-inp { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface); font-size: 12px; font-family: inherit; outline: none; width: 340px; max-width: 100%; color: var(--text); }
+    .sheets-url-inp:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,63,110,0.08); }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,63,110,0.05); }
+    .stat-label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; }
+    .stat-value { font-size: 28px; font-weight: 800; line-height: 1; font-family: 'DM Mono', monospace; }
+    .stat-sub   { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+
+    .view-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+
+    .process-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .process-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: box-shadow 0.2s, transform 0.15s; box-shadow: 0 1px 4px rgba(0,63,110,0.06); }
+    .process-card:hover { box-shadow: 0 4px 16px rgba(0,63,110,0.12); transform: translateY(-1px); }
+    .process-card-header { padding: 15px 18px 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); background: var(--primary-xs); }
+    .process-card-name  { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .process-card-count { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .process-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .process-card-body { padding: 12px 18px; }
+    .process-progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .process-bar-track { flex: 1; background: var(--surface3); border-radius: 99px; height: 7px; overflow: hidden; }
+    .process-bar-fill  { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+    .process-bar-pct   { font-size: 12px; font-weight: 700; color: var(--text); font-family: 'DM Mono'; min-width: 36px; text-align: right; }
+
+    .impl-list  { display: flex; flex-direction: column; gap: 5px; }
+    .impl-item  { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+    .impl-item:hover { background: var(--primary-xl); border-color: var(--border2); }
+    .impl-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .impl-name  { font-size: 13px; font-weight: 600; color: var(--text2); flex: 1; }
+    .impl-pct   { font-size: 12px; font-weight: 700; color: var(--muted); font-family: 'DM Mono'; }
+    .impl-actions { display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; }
+    .impl-item:hover .impl-actions { opacity: 1; }
+    .btn-icon   { background: none; border: none; cursor: pointer; font-size: 13px; padding: 3px 5px; border-radius: 5px; transition: background 0.15s; }
+    .btn-icon:hover { background: var(--surface3); }
+    .impl-empty { font-size: 12px; color: var(--muted2); padding: 10px 0; text-align: center; }
+    .add-impl-btn { margin-top: 8px; width: 100%; padding: 7px; border-radius: 8px; background: none; border: 1px dashed var(--border2); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .add-impl-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-xl); }
+
+    .badge { padding: 2px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; }
+    .badge-done  { background: var(--green-bg);   color: var(--green); }
+    .badge-adv   { background: var(--primary-xl); color: var(--primary); }
+    .badge-curso { background: var(--yellow-bg);  color: var(--yellow); }
+    .badge-init  { background: var(--orange-bg);  color: var(--orange); }
+    .badge-pend  { background: var(--surface2);   color: var(--muted); border: 1px solid var(--border); }
+
+    .op-section       { margin-bottom: 28px; }
+    .op-section-title { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+    .op-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .op-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,63,110,0.05); }
+    .op-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .op-table thead tr { border-bottom: 1px solid var(--border2); background: var(--primary-xs); }
+    .op-table th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; color: var(--primary); letter-spacing: 0.08em; text-transform: uppercase; }
+    .op-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .op-table tbody tr:last-child { border-bottom: none; }
+    .op-table tbody tr:hover { background: var(--primary-xs); }
+    .op-table td { padding: 11px 14px; vertical-align: middle; }
+    .op-proceso { font-weight: 600; color: var(--primary); }
+    .op-empresa { color: var(--text2); font-weight: 500; }
+    .op-obs     { color: var(--muted); max-width: 280px; font-size: 12px; }
+    .op-obs-inner { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .op-bar { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+    .op-bar-track { flex: 1; background: var(--surface3); border-radius: 99px; height: 6px; overflow: hidden; }
+    .op-bar-fill  { height: 100%; border-radius: 99px; }
+    .op-bar-pct   { font-size: 11px; font-weight: 700; color: var(--text); font-family: 'DM Mono'; min-width: 32px; text-align: right; }
+
+    .filters-bar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+    .filter-btn  { padding: 6px 13px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .filter-btn.active { border-color: var(--primary); background: var(--primary-xl); color: var(--primary); }
+    .filter-btn:hover:not(.active) { background: var(--surface2); color: var(--text); }
+    .search-inp  { padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; outline: none; flex: 1; min-width: 180px; }
+    .search-inp::placeholder { color: var(--muted2); }
+    .search-inp:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,63,110,0.08); }
+    .select-inp  { padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; outline: none; cursor: pointer; }
+    .select-inp:focus { border-color: var(--primary); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,25,50,0.45); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; backdrop-filter: blur(3px); }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 500px; box-shadow: 0 24px 60px rgba(0,25,50,0.25); animation: modalIn 0.2s ease; max-height: 90vh; overflow-y: auto; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.97) translateY(6px); } to { opacity: 1; transform: none; } }
+    .modal h2 { margin: 0 0 20px; font-size: 17px; font-weight: 800; color: var(--primary); }
+    .form-group  { margin-bottom: 14px; }
+    .form-label  { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .form-input, .form-textarea, .form-select { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); font-size: 13px; font-family: inherit; outline: none; color: var(--text); transition: border-color 0.15s; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,63,110,0.08); }
+    .form-textarea { resize: vertical; }
+    .range-wrap   { margin-bottom: 4px; }
+    .range-input  { width: 100%; accent-color: var(--primary); }
+    .range-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted2); margin-top: 2px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 22px; }
+
+    .emp-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,63,110,0.05); }
+    .emp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .emp-table thead tr { background: var(--primary-xs); border-bottom: 1px solid var(--border2); }
+    .emp-table th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; color: var(--primary); letter-spacing: 0.08em; text-transform: uppercase; }
+    .emp-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .emp-table tbody tr:last-child { border-bottom: none; }
+    .emp-table tbody tr:hover { background: var(--primary-xs); }
+    .emp-table td { padding: 10px 14px; vertical-align: middle; }
+
+    .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+
+    .detail-panel   { position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 100%; background: var(--surface); border-left: 1px solid var(--border); z-index: 150; overflow-y: auto; transform: translateX(100%); transition: transform 0.28s ease; box-shadow: -8px 0 32px rgba(0,25,50,0.14); }
+    .detail-panel.open { transform: translateX(0); }
+    .detail-overlay { position: fixed; inset: 0; z-index: 140; background: rgba(0,25,50,0.2); display: none; }
+    .detail-overlay.open { display: block; }
+    .detail-header  { padding: 20px 22px; border-bottom: 1px solid var(--border); background: var(--primary-xs); display: flex; align-items: flex-start; gap: 12px; }
+    .detail-header-info { flex: 1; }
+    .detail-header-title { font-size: 16px; font-weight: 800; color: var(--primary); }
+    .detail-header-sub   { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .detail-close { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 14px; cursor: pointer; padding: 5px 9px; border-radius: 7px; line-height: 1; transition: all 0.15s; }
+    .detail-close:hover { background: var(--surface2); color: var(--text); }
+    .detail-body { padding: 20px 22px; }
+    .detail-section { margin-bottom: 22px; }
+    .detail-section-title { font-size: 10px; font-weight: 700; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-key { color: var(--muted); }
+    .detail-val { font-weight: 600; color: var(--text); }
+    .detail-obs { font-size: 13px; color: var(--text2); line-height: 1.6; padding: 12px 14px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); }
+
+    .toast { position: fixed; bottom: 22px; right: 22px; z-index: 999; background: var(--primary); border-radius: 10px; padding: 11px 18px; font-size: 13px; font-weight: 600; color: #fff; box-shadow: 0 8px 24px rgba(0,25,50,0.28); animation: toastIn 0.25s ease; display: flex; align-items: center; gap: 8px; max-width: 360px; }
+    .toast.error { background: var(--red); }
+    .toast.success { background: var(--green); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .table-footer  { margin-top: 8px; font-size: 12px; color: var(--muted2); text-align: right; }
+    .empty-state   { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .empty-state .emoji { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* Pending sync indicator on rows */
+    .row-pending { position: relative; }
+    .row-pending::after { content: ''; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .content { padding: 16px; }
+      .topbar  { padding: 12px 16px; }
+      .process-grid { grid-template-columns: 1fr; }
+      .sheets-url-inp { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">📋</div>
+      <h2>Proyectos &<br>Automatizaciones</h2>
+      <p>Panel de gestión</p>
+    </div>
+
+    <!-- Sync status -->
+    <div class="sync-status-bar" id="sync-status-bar" style="margin-top:10px">
+      <div style="display:flex;align-items:center">
+        <span class="sync-dot none" id="sync-dot"></span>
+        <span class="sync-label" id="sync-label">Sin conectar</span>
+      </div>
+      <div class="sync-time" id="sync-time"></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Vistas</div>
+        <button class="nav-item active" onclick="switchView('panel')"    id="nav-panel">    <span>⚡</span> Panel Operativo <span class="nav-badge" id="nb-panel">—</span></button>
+        <button class="nav-item"        onclick="switchView('procesos')" id="nav-procesos">  <span>🔧</span> Procesos         <span class="nav-badge" id="nb-procesos">—</span></button>
+        <button class="nav-item"        onclick="switchView('empresas')" id="nav-empresas">  <span>🏢</span> Empresas         <span class="nav-badge" id="nb-empresas">—</span></button>
+        <button class="nav-item"        onclick="switchView('lista')"    id="nav-lista">    <span>📄</span> Lista completa   <span class="nav-badge" id="nb-lista">—</span></button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Google Sheets</div>
+        <button class="nav-item" onclick="openSheetsConfig()">          <span>⚙️</span> Configurar Sheets</button>
+        <button class="nav-item" onclick="syncFromSheets()">            <span>↓</span>  Importar de Sheets</button>
+        <button class="nav-item" onclick="pushAllToSheets()">           <span>↑</span>  Exportar a Sheets</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Acciones</div>
+        <button class="nav-item" onclick="openAddImpl(null)">           <span>➕</span> Nueva implementación</button>
+        <button class="nav-item" onclick="openAddProcess()">            <span>🔧</span> Nuevo proceso</button>
+        <button class="nav-item" onclick="openAddEmpresa()">            <span>🏢</span> Nueva empresa</button>
+        <button class="nav-item" onclick="handleExport()">              <span>↓</span>  Exportar xlsx</button>
+        <button class="nav-item" onclick="document.getElementById('fileInput').click()"><span>↑</span> Importar xlsx</button>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)"/>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">⚡ Panel Operativo <span id="topbar-sub">Resumen general</span></div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content">
+
+      <!-- SHEETS CONFIG BANNER -->
+      <div id="sheets-banner-container"></div>
+
+      <!-- PANEL OPERATIVO -->
+      <div class="view active" id="view-panel">
+        <div class="stats-row" id="op-stats"></div>
+        <div id="op-sections"></div>
+      </div>
+
+      <!-- PROCESOS -->
+      <div class="view" id="view-procesos">
+        <div class="stats-row" id="proc-stats"></div>
+        <div class="process-grid" id="process-grid"></div>
+      </div>
+
+      <!-- EMPRESAS -->
+      <div class="view" id="view-empresas">
+        <div class="view-header">
+          <input class="search-inp" id="emp-search" placeholder="🔍 Buscar empresa..." oninput="renderEmpresas()" style="max-width:260px"/>
+          <button class="btn btn-primary" onclick="openAddEmpresa()">+ Nueva empresa</button>
+        </div>
+        <div class="emp-table-wrap">
+          <table class="emp-table">
+            <thead><tr><th>Empresa / Módulo</th><th>Implementaciones</th><th>Avance promedio</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="empresas-body"></tbody>
+          </table>
+        </div>
+        <div class="table-footer" id="empresas-footer"></div>
+      </div>
+
+      <!-- LISTA COMPLETA -->
+      <div class="view" id="view-lista">
+        <div class="filters-bar">
+          <button class="filter-btn active" onclick="setListFilter('all',this)">Todas</button>
+          <button class="filter-btn" onclick="setListFilter('done',this)">✓ Completas</button>
+          <button class="filter-btn" onclick="setListFilter('progress',this)">◐ En curso</button>
+          <button class="filter-btn" onclick="setListFilter('pending',this)">○ Pendientes</button>
+          <select class="select-inp" id="lista-filter-proc" onchange="renderLista()"><option value="">Todos los procesos</option></select>
+          <input class="search-inp" id="lista-search" placeholder="🔍 Buscar..." oninput="renderLista()"/>
+        </div>
+        <div class="op-table-wrap">
+          <table class="op-table">
+            <thead><tr><th>Proceso</th><th>Empresa</th><th>Observaciones</th><th>Estado</th><th>Avance</th><th></th></tr></thead>
+            <tbody id="lista-body"></tbody>
+          </table>
+        </div>
+        <div class="table-footer" id="lista-footer"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <div class="detail-header-info">
+      <div class="detail-header-title" id="dp-title">—</div>
+      <div class="detail-header-sub"   id="dp-sub">—</div>
+    </div>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body" id="dp-body"></div>
+</div>
+
+<!-- MODAL SHEETS CONFIG -->
+<div class="modal-overlay" id="modal-sheets" style="display:none" onclick="modalOverlay(event,'modal-sheets')">
+  <div class="modal">
+    <h2>⚙️ Configurar Google Sheets</h2>
+    <div style="background:var(--primary-xl);border-radius:10px;padding:14px;margin-bottom:18px;font-size:12px;color:var(--text2);line-height:1.7">
+      <strong style="color:var(--primary)">Pasos para conectar:</strong><br>
+      1. Abrí tu Google Sheet → <em>Extensiones → Apps Script</em><br>
+      2. Pegá el código del archivo <code>Code.gs</code> incluido<br>
+      3. Implementá como <strong>Aplicación web</strong> (Implementar → Nueva implementación)<br>
+      &nbsp;&nbsp;&nbsp;• Ejecutar como: <strong>Yo</strong><br>
+      &nbsp;&nbsp;&nbsp;• Quién tiene acceso: <strong>Cualquier usuario</strong><br>
+      4. Copiá la URL generada y pegála abajo<br>
+      5. Hacé clic en <strong>Guardar y probar conexión</strong>
+    </div>
+    <div class="form-group">
+      <label class="form-label">URL de tu Apps Script (Web App)</label>
+      <input class="form-input" id="sheets-url-input" type="url" placeholder="https://script.google.com/macros/s/AKfy.../exec"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Auto-sync cada (minutos, 0 = desactivado)</label>
+      <input class="form-input" id="sheets-autosync" type="number" min="0" max="60" value="0" placeholder="0"/>
+    </div>
+    <div id="sheets-test-result" style="display:none;margin-bottom:14px;padding:10px 13px;border-radius:8px;font-size:12px;font-weight:600"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-sheets')">Cerrar</button>
+      <button class="btn btn-secondary" onclick="testSheetsConnection()">🔍 Probar conexión</button>
+      <button class="btn btn-primary"   onclick="saveSheetsConfig()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPL -->
+<div class="modal-overlay" id="modal-impl" style="display:none" onclick="modalOverlay(event,'modal-impl')">
+  <div class="modal">
+    <h2 id="mi-title">➕ Nueva Implementación</h2>
+    <div class="form-group">
+      <label class="form-label">Proceso</label>
+      <select class="form-select" id="mi-proceso"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Empresa / Módulo</label>
+      <select class="form-select" id="mi-empresa-sel" onchange="miEmpChange()"></select>
+    </div>
+    <div class="form-group" id="mi-emp-new-grp" style="display:none">
+      <label class="form-label">Nombre de nueva empresa</label>
+      <input class="form-input" id="mi-emp-new" type="text" placeholder="Ej: Empresa Bonafide..."/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones / Estado</label>
+      <textarea class="form-input form-textarea" id="mi-obs" rows="3" placeholder="Descripción del estado actual..."></textarea>
+    </div>
+    <div class="range-wrap">
+      <label class="form-label">Avance: <strong id="mi-rdisplay" style="color:var(--primary)">0%</strong></label>
+      <input class="range-input" type="range" id="mi-avance" min="0" max="100" step="5" value="0" oninput="document.getElementById('mi-rdisplay').textContent=this.value+'%'"/>
+      <div class="range-labels"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-impl')">Cancelar</button>
+      <button class="btn btn-primary"   onclick="saveImpl()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROCESO -->
+<div class="modal-overlay" id="modal-proc" style="display:none" onclick="modalOverlay(event,'modal-proc')">
+  <div class="modal">
+    <h2 id="mp-title">🔧 Nuevo Proceso</h2>
+    <div class="form-group">
+      <label class="form-label">Nombre del Proceso</label>
+      <input class="form-input" id="mp-name" type="text" placeholder="Ej: Conciliación y Arqueo..."/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción (opcional)</label>
+      <textarea class="form-input form-textarea" id="mp-desc" rows="2" placeholder="Breve descripción..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color identificador</label>
+      <select class="form-select" id="mp-color">
+        <option value="#003F6E">🔵 Azul corporativo</option>
+        <option value="#0072c6">🔷 Azul claro</option>
+        <option value="#16a34a">🟢 Verde</option>
+        <option value="#b45309">🟡 Ámbar</option>
+        <option value="#c2410c">🟠 Naranja</option>
+        <option value="#dc2626">🔴 Rojo</option>
+        <option value="#7c3aed">🟣 Violeta</option>
+        <option value="#0891b2">🩵 Cian</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proc')">Cancelar</button>
+      <button class="btn btn-primary"   onclick="saveProcess()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMPRESA -->
+<div class="modal-overlay" id="modal-empresa" style="display:none" onclick="modalOverlay(event,'modal-empresa')">
+  <div class="modal">
+    <h2 id="me-title">🏢 Nueva Empresa</h2>
+    <div class="form-group">
+      <label class="form-label">Nombre de la Empresa / Módulo</label>
+      <input class="form-input" id="me-name" type="text" placeholder="Ej: Parador, Bonafide, Don Américo..."/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas (opcional)</label>
+      <textarea class="form-input form-textarea" id="me-notes" rows="2" placeholder="Información adicional..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-empresa')">Cancelar</button>
+      <button class="btn btn-primary"   onclick="saveEmpresa()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================================================================
+//  DATOS INICIALES
+// ===================================================================
+let processes = [
+  { id:"proc_1", name:"Conciliación y Arqueo",     desc:"Conciliación contable y arqueo de caja", color:"#003F6E" },
+  { id:"proc_2", name:"Dashboard Cheques",          desc:"Visualización y seguimiento de cheques",  color:"#0072c6" },
+  { id:"proc_3", name:"Costos",                     desc:"Análisis y seguimiento de costos",        color:"#b45309" },
+  { id:"proc_4", name:"Rubreo",                     desc:"Proceso de rubreo y validación",          color:"#c2410c" },
+  { id:"proc_5", name:"Automatización Ventas",      desc:"Automatización de reportes de ventas",    color:"#7c3aed" },
+  { id:"proc_6", name:"Digitalización de Facturas", desc:"Lectura OCR y digitalización",            color:"#dc2626" },
+  { id:"proc_7", name:"Análisis de Precios",        desc:"Monitoreo y análisis de precios",         color:"#16a34a" },
+  { id:"proc_8", name:"Conciliación Financiera",    desc:"Banco vs ingresos",                       color:"#0891b2" },
+  { id:"proc_9", name:"Económico y Financiero",     desc:"Dashboard económico-financiero",          color:"#7c3aed" },
+];
+let empresas = [
+  { id:"emp_1",  name:"Parador",             notes:"" },
+  { id:"emp_2",  name:"Playita",             notes:"" },
+  { id:"emp_3",  name:"Chimbas",             notes:"" },
+  { id:"emp_4",  name:"Invernadas",          notes:"" },
+  { id:"emp_5",  name:"Invernadas Paula",    notes:"" },
+  { id:"emp_6",  name:"Invernadas Bonafide", notes:"" },
+  { id:"emp_7",  name:"Rocky Bay",           notes:"" },
+  { id:"emp_8",  name:"Don Américo",         notes:"" },
+  { id:"emp_9",  name:"Ancestral",           notes:"" },
+  { id:"emp_10", name:"Del Parque",          notes:"" },
+  { id:"emp_11", name:"Algar",               notes:"" },
+  { id:"emp_12", name:"Ventas Semanales",    notes:"" },
+  { id:"emp_13", name:"Lectura OCR",         notes:"" },
+  { id:"emp_14", name:"Precios",             notes:"" },
+  { id:"emp_15", name:"Banco vs Ingresos",   notes:"" },
+  { id:"emp_16", name:"Dashboard",           notes:"" },
+];
+let impls = [
+  { id:"i1",  procId:"proc_1", empId:"emp_1",  obs:"Agregando según lo que solicita Rocío",              avance:1    },
+  { id:"i2",  procId:"proc_1", empId:"emp_2",  obs:"Agregando según lo que solicita Rocío",              avance:1    },
+  { id:"i3",  procId:"proc_1", empId:"emp_3",  obs:"Agregando según lo que solicita Rocío",              avance:1    },
+  { id:"i4",  procId:"proc_1", empId:"emp_4",  obs:"Agregando según lo que solicita Pilar",              avance:1    },
+  { id:"i5",  procId:"proc_1", empId:"emp_5",  obs:"Agregando según lo que solicita Pilar",              avance:1    },
+  { id:"i6",  procId:"proc_1", empId:"emp_6",  obs:"Agregando según lo que solicita Pilar",              avance:1    },
+  { id:"i7",  procId:"proc_1", empId:"emp_7",  obs:"Está ok",                                            avance:1    },
+  { id:"i8",  procId:"proc_1", empId:"emp_8",  obs:"Pruebas de conciliación ok, falta agregar efectivo", avance:0.85 },
+  { id:"i9",  procId:"proc_1", empId:"emp_9",  obs:"Juntarme con Sol para detectar errores",             avance:0.75 },
+  { id:"i10", procId:"proc_2", empId:"emp_10", obs:"En funcionamiento",                                  avance:1    },
+  { id:"i11", procId:"proc_2", empId:"emp_8",  obs:"En funcionamiento",                                  avance:1    },
+  { id:"i12", procId:"proc_2", empId:"emp_11", obs:"En funcionamiento",                                  avance:1    },
+  { id:"i13", procId:"proc_3", empId:"emp_8",  obs:"Agregando según lo que solicita Raúl y Matías",     avance:0.95 },
+  { id:"i14", procId:"proc_3", empId:"emp_1",  obs:"Tengo que reunirme con Santi",                       avance:0    },
+  { id:"i15", procId:"proc_4", empId:"emp_1",  obs:"Código ok, falta implementarlo con Rocío",          avance:0.8  },
+  { id:"i16", procId:"proc_5", empId:"emp_12", obs:"Reunirse con el equipo para definir el reporte",     avance:0.75 },
+  { id:"i17", procId:"proc_6", empId:"emp_13", obs:"Código ok, falta implementar automatización",       avance:0.5  },
+  { id:"i18", procId:"proc_7", empId:"emp_14", obs:"Código ok, falta probar y automatizar la base",     avance:0.4  },
+  { id:"i19", procId:"proc_8", empId:"emp_15", obs:"Voy a ir armándolo junto con el grupo del curso",    avance:0    },
+  { id:"i20", procId:"proc_9", empId:"emp_16", obs:"Tengo que ver cómo automatizarlo en el servidor",    avance:0    },
+];
+
+// ===================================================================
+//  GOOGLE SHEETS — CONFIG Y ESTADO
+// ===================================================================
+let sheetsConfig = JSON.parse(localStorage.getItem('sheetsConfig') || '{"url":"","autosync":0}');
+let syncState = { status:'none', lastSync:null, syncing:false };
+let autoSyncTimer = null;
+
+function getSheetsUrl() { return sheetsConfig.url || ''; }
+
+function saveSheetsConfig() {
+  const url      = document.getElementById('sheets-url-input').value.trim();
+  const autosync = parseInt(document.getElementById('sheets-autosync').value) || 0;
+  sheetsConfig = { url, autosync };
+  localStorage.setItem('sheetsConfig', JSON.stringify(sheetsConfig));
+  setupAutoSync();
+  closeModal('modal-sheets');
+  renderBanner();
+  updateSyncStatus('none', url ? 'Conectado (no probado)' : 'Sin conectar');
+  showToast(url ? '✅ Configuración guardada' : '⚠️ URL eliminada');
+}
+
+function openSheetsConfig() {
+  document.getElementById('sheets-url-input').value = sheetsConfig.url || '';
+  document.getElementById('sheets-autosync').value  = sheetsConfig.autosync || 0;
+  document.getElementById('sheets-test-result').style.display = 'none';
+  document.getElementById('modal-sheets').style.display = 'flex';
+}
+
+async function testSheetsConnection() {
+  const url = document.getElementById('sheets-url-input').value.trim();
+  const res  = document.getElementById('sheets-test-result');
+  if (!url) { res.style.display='block'; res.style.background='#fee2e2'; res.style.color='#dc2626'; res.textContent='⚠️ Ingresá la URL primero.'; return; }
+  res.style.display='block'; res.style.background='#fef3c7'; res.style.color='#b45309'; res.textContent='⏳ Probando conexión...';
+  try {
+    const r = await fetch(url + '?action=getAll', { method:'GET' });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      res.style.background='#dcfce7'; res.style.color='#16a34a';
+      res.textContent=`✅ Conexión OK · ${d.impls?.length||0} impls · ${d.processes?.length||0} procesos · ${d.empresas?.length||0} empresas en Sheets`;
+    } else {
+      res.style.background='#fee2e2'; res.style.color='#dc2626';
+      res.textContent='❌ Error: ' + (d.message||'respuesta inesperada');
+    }
+  } catch(e) {
+    res.style.background='#fee2e2'; res.style.color='#dc2626';
+    res.textContent='❌ No se pudo conectar. Revisá la URL y los permisos del Apps Script.';
+  }
+}
+
+// Importar desde Sheets → sobreescribe datos locales
+async function syncFromSheets() {
+  const url = getSheetsUrl();
+  if (!url) { openSheetsConfig(); showToast('⚠️ Configurá la URL de Sheets primero', 'error'); return; }
+  updateSyncStatus('pend', 'Importando...');
+  try {
+    const r = await fetch(url + '?action=getAll');
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.message);
+    if (d.processes?.length) processes = d.processes.map(p=>({id:String(p.id),name:p.name,desc:p.desc||'',color:p.color||'#003F6E'}));
+    if (d.empresas?.length)  empresas  = d.empresas.map(e=>({id:String(e.id),name:e.name,notes:e.notes||''}));
+    if (d.impls?.length)     impls     = d.impls.map(i=>({id:String(i.id),procId:String(i.procId),empId:String(i.empId),obs:i.obs||'',avance:parseFloat(i.avance)||0}));
+    renderAll();
+    updateSyncStatus('ok', 'Importado de Sheets');
+    showToast(`✅ Importado: ${impls.length} impls, ${processes.length} procesos, ${empresas.length} empresas`, 'success');
+  } catch(e) {
+    updateSyncStatus('err', 'Error al importar');
+    showToast('❌ Error al importar: ' + e.message, 'error');
+  }
+}
+
+// Exportar todos los datos locales → Sheets (reemplaza todo)
+async function pushAllToSheets() {
+  const url = getSheetsUrl();
+  if (!url) { openSheetsConfig(); showToast('⚠️ Configurá la URL de Sheets primero', 'error'); return; }
+  updateSyncStatus('pend', 'Exportando...');
+  try {
+    const r = await fetch(url, { method:'POST', body: JSON.stringify({ action:'syncAll', impls, processes, empresas }) });
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.message);
+    updateSyncStatus('ok', 'Exportado a Sheets');
+    showToast('✅ Todos los datos exportados a Google Sheets', 'success');
+  } catch(e) {
+    updateSyncStatus('err', 'Error al exportar');
+    showToast('❌ Error al exportar: ' + e.message, 'error');
+  }
+}
+
+// Enviar UN solo item a Sheets (al guardar/editar)
+async function pushItemToSheets(action, data) {
+  const url = getSheetsUrl(); if (!url) return;
+  try {
+    await fetch(url, { method:'POST', body: JSON.stringify({ action, data }) });
+    updateSyncStatus('ok', 'Sincronizado');
+  } catch(e) {
+    updateSyncStatus('err', 'Error al sincronizar');
+  }
+}
+
+async function deleteItemFromSheets(action, id) {
+  const url = getSheetsUrl(); if (!url) return;
+  try {
+    await fetch(url, { method:'POST', body: JSON.stringify({ action, id }) });
+    updateSyncStatus('ok', 'Sincronizado');
+  } catch(e) {
+    updateSyncStatus('err', 'Error al sincronizar');
+  }
+}
+
+function setupAutoSync() {
+  if (autoSyncTimer) clearInterval(autoSyncTimer);
+  const mins = sheetsConfig.autosync || 0;
+  if (mins > 0 && getSheetsUrl()) {
+    autoSyncTimer = setInterval(() => syncFromSheets(), mins * 60 * 1000);
+  }
+}
+
+function updateSyncStatus(status, label) {
+  syncState.status = status;
+  if (status === 'ok') syncState.lastSync = new Date();
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  const tim = document.getElementById('sync-time');
+  dot.className = 'sync-dot ' + status;
+  lbl.textContent = label || (status==='ok'?'Sincronizado':status==='err'?'Error de sync':status==='pend'?'Sincronizando...':'Sin conectar');
+  tim.textContent = syncState.lastSync ? 'Última sync: ' + syncState.lastSync.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+}
+
+function renderBanner() {
+  const c = document.getElementById('sheets-banner-container');
+  if (!c) return;
+  if (!getSheetsUrl()) {
+    c.innerHTML=`<div class="sheets-banner" style="margin-bottom:16px">
+      <div class="sheets-banner-info">
+        <span style="font-size:22px">🔗</span>
+        <div class="sheets-banner-text">
+          <h4>Conectá con Google Sheets para colaborar</h4>
+          <p>Vos y tu compañera pueden sincronizar datos en tiempo real</p>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="openSheetsConfig()">⚙️ Configurar</button>
+    </div>`;
+  } else {
+    c.innerHTML=`<div class="sheets-banner connected" style="margin-bottom:16px">
+      <div class="sheets-banner-info">
+        <span style="font-size:22px">✅</span>
+        <div class="sheets-banner-text">
+          <h4>Google Sheets conectado</h4>
+          <p style="font-family:monospace;font-size:11px;color:#5a7a96">${getSheetsUrl().substring(0,55)}...</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sync" onclick="syncFromSheets()">↓ Importar</button>
+        <button class="btn btn-sync" onclick="pushAllToSheets()">↑ Exportar</button>
+        <button class="btn btn-secondary" onclick="openSheetsConfig()">⚙️</button>
+      </div>
+    </div>`;
+  }
+}
+
+// ===================================================================
+//  HELPERS
+// ===================================================================
+let editingImplId=null, editingProcId=null, editingEmpId=null;
+let currentView='panel', listFilter='all', _idC=200;
+function genId(p){ return p+'_'+(++_idC)+'_'+Date.now(); }
+
+function getColor(a){
+  if(a>=1)    return {bar:'#16a34a', badge:'badge-done',  label:'Completo'};
+  if(a>=0.75) return {bar:'#003F6E', badge:'badge-adv',   label:'Avanzado'};
+  if(a>=0.4)  return {bar:'#b45309', badge:'badge-curso', label:'En curso'};
+  if(a>0)     return {bar:'#c2410c', badge:'badge-init',  label:'Iniciado'};
+  return              {bar:'#94a3b8', badge:'badge-pend',  label:'Pendiente'};
+}
+function getProc(id){ return processes.find(p=>p.id===id); }
+function getProcName(id){ const p=getProc(id); return p?p.name:id; }
+function getEmp(id){ return empresas.find(e=>e.id===id); }
+function getEmpName(id){ const e=getEmp(id); return e?e.name:id; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===================================================================
+//  NAV
+// ===================================================================
+function setTopbarActions(v){
+  const ta=document.getElementById('topbar-actions');
+  if(v==='panel'){
+    ta.innerHTML=`<button class="btn btn-sync" onclick="syncFromSheets()">↓ Sync</button>
+      <button class="btn btn-photo" id="btn-jpg-panel" onclick="downloadJpg('panel')">📷 JPG</button>
+      <button class="btn btn-primary" onclick="openAddImpl(null)">+ Implementación</button>
+      <button class="btn btn-secondary" onclick="openAddProcess()">+ Proceso</button>`;
+  } else if(v==='procesos'){
+    ta.innerHTML=`<button class="btn btn-sync" onclick="syncFromSheets()">↓ Sync</button>
+      <button class="btn btn-photo" id="btn-jpg-proc" onclick="downloadJpg('procesos')">📷 JPG</button>
+      <button class="btn btn-primary" onclick="openAddImpl(null)">+ Implementación</button>
+      <button class="btn btn-secondary" onclick="openAddProcess()">+ Proceso</button>`;
+  } else if(v==='empresas'){
+    ta.innerHTML=`<button class="btn btn-sync" onclick="syncFromSheets()">↓ Sync</button>
+      <button class="btn btn-primary" onclick="openAddEmpresa()">+ Nueva empresa</button>`;
+  } else {
+    ta.innerHTML=`<button class="btn btn-sync" onclick="syncFromSheets()">↓ Sync</button>
+      <button class="btn btn-primary" onclick="openAddImpl(null)">+ Implementación</button>`;
+  }
+}
+
+function switchView(v){
+  currentView=v;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('nav-'+v).classList.add('active');
+  const titles={panel:['⚡ Panel Operativo','Resumen general'],procesos:['🔧 Procesos','Gestión de procesos'],empresas:['🏢 Empresas','Administración de empresas'],lista:['📄 Lista completa','Todas las implementaciones']};
+  const [t,s]=titles[v]||['',''];
+  document.getElementById('topbar-title').innerHTML=t+' <span id="topbar-sub">'+s+'</span>';
+  setTopbarActions(v);
+  renderBanner();
+  renderAll();
+}
+
+function renderAll(){
+  updateBadges();
+  if(currentView==='panel')    renderPanel();
+  if(currentView==='procesos') renderProcesos();
+  if(currentView==='empresas') renderEmpresas();
+  if(currentView==='lista')    renderLista();
+}
+
+function updateBadges(){
+  document.getElementById('nb-panel').textContent    = impls.length;
+  document.getElementById('nb-procesos').textContent = processes.length;
+  document.getElementById('nb-empresas').textContent = empresas.length;
+  document.getElementById('nb-lista').textContent    = impls.length;
+}
+
+// ===================================================================
+//  PANEL
+// ===================================================================
+function renderPanel(){
+  const total=impls.length, done=impls.filter(i=>i.avance>=1).length;
+  const inProg=impls.filter(i=>i.avance>0&&i.avance<1).length, pending=impls.filter(i=>i.avance===0).length;
+  const avg=total?impls.reduce((s,i)=>s+i.avance,0)/total:0;
+
+  document.getElementById('op-stats').innerHTML=[
+    {label:'Implementaciones',val:total,                                             color:'var(--primary)'},
+    {label:'Completadas',     val:done, sub:total?Math.round(done/total*100)+'% del total':'', color:'var(--green)'},
+    {label:'En progreso',     val:inProg,                                            color:'var(--accent)'},
+    {label:'Pendientes',      val:pending,                                           color:'var(--red)'},
+    {label:'Avance promedio', val:Math.round(avg*100)+'%',                           color:'var(--purple)'},
+    {label:'Procesos',        val:processes.length,                                  color:'var(--primary)'},
+  ].map(s=>`<div class="stat-card">
+    <div class="stat-label">${s.label}</div>
+    <div class="stat-value" style="color:${s.color}">${s.val}</div>
+    ${s.sub?`<div class="stat-sub">${s.sub}</div>`:''}
+  </div>`).join('');
+
+  const secs=[
+    {title:'✅ Completadas',       items:impls.filter(i=>i.avance>=1)},
+    {title:'🔵 Avanzadas (≥75%)',  items:impls.filter(i=>i.avance>=0.75&&i.avance<1)},
+    {title:'🟡 En curso (40–74%)', items:impls.filter(i=>i.avance>=0.4&&i.avance<0.75)},
+    {title:'🟠 Iniciadas (<40%)',  items:impls.filter(i=>i.avance>0&&i.avance<0.4)},
+    {title:'⚪ Pendientes',        items:impls.filter(i=>i.avance===0)},
+  ];
+  document.getElementById('op-sections').innerHTML=secs.filter(s=>s.items.length>0).map(s=>`
+    <div class="op-section">
+      <div class="op-section-title">${s.title} <span style="color:var(--muted2);font-size:11px;text-transform:none;letter-spacing:0;font-weight:400">${s.items.length} impl.</span></div>
+      <div class="op-table-wrap">
+        <table class="op-table">
+          <thead><tr><th>Proceso</th><th>Empresa</th><th>Observaciones</th><th>Estado</th><th>Avance</th><th></th></tr></thead>
+          <tbody>${s.items.map(item=>rowHtml(item)).join('')}</tbody>
+        </table>
+      </div>
+    </div>`).join('');
+}
+
+function rowHtml(item){
+  const c=getColor(item.avance), pct=Math.round(item.avance*100), proc=getProc(item.procId);
+  return `<tr>
+    <td class="op-proceso"><div style="display:flex;align-items:center;gap:7px"><span class="color-dot" style="background:${proc?proc.color:'#003F6E'}"></span>${esc(proc?proc.name:item.procId)}</div></td>
+    <td class="op-empresa">${esc(getEmpName(item.empId))}</td>
+    <td class="op-obs"><div class="op-obs-inner">${esc(item.obs)}</div></td>
+    <td><span class="badge ${c.badge}">${c.label}</span></td>
+    <td><div class="op-bar"><div class="op-bar-track"><div class="op-bar-fill" style="width:${pct}%;background:${c.bar}"></div></div><span class="op-bar-pct">${pct}%</span></div></td>
+    <td style="white-space:nowrap"><div style="display:flex;gap:4px">
+      <button class="btn-icon" onclick="openDetail('${item.id}')" title="Ver">👁️</button>
+      <button class="btn-icon" onclick="openEditImpl('${item.id}')" title="Editar">✏️</button>
+      <button class="btn-icon" onclick="deleteImpl('${item.id}')" title="Eliminar">🗑️</button>
+    </div></td>
+  </tr>`;
+}
+
+// ===================================================================
+//  PROCESOS
+// ===================================================================
+function renderProcesos(){
+  const total=impls.length;
+  document.getElementById('proc-stats').innerHTML=[
+    {label:'Procesos',         val:processes.length,  color:'var(--primary)'},
+    {label:'Implementaciones', val:total,             color:'var(--accent)'},
+    {label:'Empresas',         val:empresas.length,   color:'var(--green)'},
+    {label:'Avance global',    val:total?Math.round(impls.reduce((s,i)=>s+i.avance,0)/total*100)+'%':'0%', color:'var(--purple)'},
+  ].map(s=>`<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value" style="color:${s.color}">${s.val}</div></div>`).join('');
+
+  const g=document.getElementById('process-grid');
+  if(!processes.length){g.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🔧</div><p>No hay procesos.</p></div>`;return;}
+  g.innerHTML=processes.map(proc=>{
+    const pi=impls.filter(i=>i.procId===proc.id);
+    const avg=pi.length?pi.reduce((s,i)=>s+i.avance,0)/pi.length:0;
+    const pct=Math.round(avg*100);
+    return `<div class="process-card">
+      <div class="process-card-header" style="border-top:3px solid ${proc.color}">
+        <div>
+          <div class="process-card-name" style="display:flex;align-items:center;gap:7px"><span class="color-dot" style="background:${proc.color};width:11px;height:11px"></span>${esc(proc.name)}</div>
+          <div class="process-card-count">${pi.length} impl${pi.length!==1?'s':''} · ${pct}% promedio</div>
+        </div>
+        <div class="process-card-actions">
+          <button class="btn-icon" onclick="openEditProcess('${proc.id}')">✏️</button>
+          <button class="btn-icon" onclick="deleteProcess('${proc.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="process-card-body">
+        <div class="process-progress-row">
+          <div class="process-bar-track"><div class="process-bar-fill" style="width:${pct}%;background:${proc.color}"></div></div>
+          <span class="process-bar-pct">${pct}%</span>
+        </div>
+        <div class="impl-list">
+          ${pi.length===0?'<div class="impl-empty">Sin implementaciones aún</div>':pi.map(item=>{
+            const c=getColor(item.avance),ip=Math.round(item.avance*100);
+            return `<div class="impl-item" onclick="openDetail('${item.id}')">
+              <span class="impl-dot" style="background:${c.bar}"></span>
+              <span class="impl-name">${esc(getEmpName(item.empId))}</span>
+              <span class="impl-pct">${ip}%</span>
+              <span class="badge ${c.badge}">${c.label}</span>
+              <div class="impl-actions" onclick="event.stopPropagation()">
+                <button class="btn-icon" onclick="openEditImpl('${item.id}')">✏️</button>
+                <button class="btn-icon" onclick="deleteImpl('${item.id}')">🗑️</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <button class="add-impl-btn" onclick="openAddImpl('${proc.id}')">+ Agregar empresa / implementación</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===================================================================
+//  EMPRESAS
+// ===================================================================
+function renderEmpresas(){
+  const search=(document.getElementById('emp-search')?.value||'').toLowerCase();
+  const filt=empresas.filter(e=>!search||e.name.toLowerCase().includes(search));
+  const tb=document.getElementById('empresas-body');
+  if(!filt.length){tb.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted2)">No se encontraron empresas</td></tr>`;return;}
+  tb.innerHTML=filt.map(emp=>{
+    const ei=impls.filter(i=>i.empId===emp.id);
+    const avg=ei.length?ei.reduce((s,i)=>s+i.avance,0)/ei.length:null;
+    const pct=avg!==null?Math.round(avg*100):null, c=avg!==null?getColor(avg):null;
+    return `<tr>
+      <td style="font-weight:600;color:var(--primary)">🏢 ${esc(emp.name)}</td>
+      <td style="color:var(--text2)">${ei.length} impl${ei.length!==1?'s':''}</td>
+      <td>${pct!==null?`<div class="op-bar" style="max-width:140px"><div class="op-bar-track"><div class="op-bar-fill" style="width:${pct}%;background:${c.bar}"></div></div><span class="op-bar-pct">${pct}%</span></div>`:'<span style="color:var(--muted2);font-size:12px">Sin datos</span>'}</td>
+      <td>${c?`<span class="badge ${c.badge}">${c.label}</span>`:'<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="white-space:nowrap"><div style="display:flex;gap:5px">
+        <button class="btn btn-secondary" style="padding:5px 11px;font-size:12px" onclick="openEditEmpresa('${emp.id}')">✏️ Editar</button>
+        <button class="btn btn-danger"    style="padding:5px 11px;font-size:12px" onclick="deleteEmpresa('${emp.id}')">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('empresas-footer').textContent=`${filt.length} de ${empresas.length} empresas`;
+}
+
+// ===================================================================
+//  LISTA
+// ===================================================================
+function setListFilter(f,btn){
+  listFilter=f;
+  document.querySelectorAll('#view-lista .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderLista();
+}
+function renderLista(){
+  const sel=document.getElementById('lista-filter-proc'), cv=sel.value;
+  sel.innerHTML='<option value="">Todos los procesos</option>'+processes.map(p=>`<option value="${p.id}" ${p.id===cv?'selected':''}>${esc(p.name)}</option>`).join('');
+  const search=(document.getElementById('lista-search')?.value||'').toLowerCase(), pf=sel.value;
+  const filt=impls.filter(i=>{
+    const ms=listFilter==='all'||(listFilter==='done'&&i.avance>=1)||(listFilter==='progress'&&i.avance>0&&i.avance<1)||(listFilter==='pending'&&i.avance===0);
+    const mp=!pf||i.procId===pf;
+    const mq=!search||getProcName(i.procId).toLowerCase().includes(search)||getEmpName(i.empId).toLowerCase().includes(search)||i.obs.toLowerCase().includes(search);
+    return ms&&mp&&mq;
+  });
+  document.getElementById('lista-body').innerHTML=filt.length===0?`<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted2)">Sin resultados</td></tr>`:filt.map(item=>rowHtml(item)).join('');
+  document.getElementById('lista-footer').textContent=`Mostrando ${filt.length} de ${impls.length} implementaciones`;
+}
+
+// ===================================================================
+//  DETAIL PANEL
+// ===================================================================
+function openDetail(id){
+  const item=impls.find(i=>i.id===id); if(!item) return;
+  const proc=getProc(item.procId), c=getColor(item.avance), pct=Math.round(item.avance*100);
+  document.getElementById('dp-title').textContent=getEmpName(item.empId);
+  document.getElementById('dp-sub').innerHTML=`Proceso: <strong style="color:${proc?proc.color:'var(--primary)'}">${esc(proc?proc.name:item.procId)}</strong>`;
+  document.getElementById('dp-body').innerHTML=`
+    <div class="detail-section">
+      <div class="detail-section-title">Estado</div>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span class="badge ${c.badge}" style="font-size:12px;padding:4px 12px">${c.label}</span>
+          <span style="font-size:24px;font-weight:800;font-family:'DM Mono';color:var(--primary)">${pct}%</span>
+        </div>
+        <div style="background:var(--surface3);border-radius:99px;height:10px;overflow:hidden">
+          <div style="width:${pct}%;background:${c.bar};height:100%;border-radius:99px"></div>
+        </div>
+      </div>
+      <div class="detail-row"><span class="detail-key">Proceso</span><span class="detail-val">${esc(proc?proc.name:item.procId)}</span></div>
+      <div class="detail-row"><span class="detail-key">Empresa</span><span class="detail-val">${esc(getEmpName(item.empId))}</span></div>
+      <div class="detail-row"><span class="detail-key">Avance</span><span class="detail-val">${pct}%</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Observaciones</div>
+      <div class="detail-obs">${esc(item.obs)||'<span style="color:var(--muted2)">Sin observaciones.</span>'}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <button class="btn btn-primary" style="flex:1" onclick="openEditImpl('${item.id}');closeDetail()">✏️ Editar</button>
+      <button class="btn btn-danger" onclick="deleteImpl('${item.id}');closeDetail()">🗑️</button>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-overlay').classList.add('open');
+}
+function closeDetail(){
+  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+// ===================================================================
+//  MODALS
+// ===================================================================
+function modalOverlay(e,id){ if(e.target.classList.contains('modal-overlay')) closeModal(id); }
+function closeModal(id){ document.getElementById(id).style.display='none'; }
+
+// ===================================================================
+//  IMPL MODAL
+// ===================================================================
+function refreshEmpSel(cv){
+  const sel=document.getElementById('mi-empresa-sel');
+  sel.innerHTML='<option value="__new__">➕ Nueva empresa...</option>'+empresas.map(e=>`<option value="${e.id}" ${e.id===cv?'selected':''}>${esc(e.name)}</option>`).join('');
+  if(cv) sel.value=cv;
+}
+function miEmpChange(){
+  document.getElementById('mi-emp-new-grp').style.display=document.getElementById('mi-empresa-sel').value==='__new__'?'block':'none';
+}
+function openAddImpl(procId){
+  editingImplId=null;
+  document.getElementById('mi-title').textContent='➕ Nueva Implementación';
+  const ps=document.getElementById('mi-proceso');
+  ps.innerHTML=processes.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  if(procId) ps.value=procId;
+  refreshEmpSel(null);
+  document.getElementById('mi-emp-new-grp').style.display='none';
+  document.getElementById('mi-emp-new').value='';
+  document.getElementById('mi-obs').value='';
+  document.getElementById('mi-avance').value=0;
+  document.getElementById('mi-rdisplay').textContent='0%';
+  document.getElementById('modal-impl').style.display='flex';
+}
+function openEditImpl(id){
+  const item=impls.find(i=>i.id===id); if(!item) return;
+  editingImplId=id;
+  document.getElementById('mi-title').textContent='✏️ Editar Implementación';
+  const ps=document.getElementById('mi-proceso');
+  ps.innerHTML=processes.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  ps.value=item.procId;
+  refreshEmpSel(item.empId);
+  document.getElementById('mi-emp-new-grp').style.display='none';
+  document.getElementById('mi-obs').value=item.obs;
+  const pct=Math.round(item.avance*100);
+  document.getElementById('mi-avance').value=pct;
+  document.getElementById('mi-rdisplay').textContent=pct+'%';
+  document.getElementById('modal-impl').style.display='flex';
+}
+async function saveImpl(){
+  const procId=document.getElementById('mi-proceso').value;
+  let empId=document.getElementById('mi-empresa-sel').value;
+  if(empId==='__new__'){
+    const nn=document.getElementById('mi-emp-new').value.trim();
+    if(!nn){showToast('⚠️ Ingresá el nombre de la empresa');return;}
+    const ne={id:genId('emp'),name:nn,notes:''};
+    empresas.push(ne); empId=ne.id;
+    // Sync nueva empresa a Sheets
+    pushItemToSheets('saveEmpresa', ne);
+  }
+  if(!procId||!empId){showToast('⚠️ Proceso y Empresa son obligatorios');return;}
+  const item={id:editingImplId||genId('i'),procId,empId,obs:document.getElementById('mi-obs').value.trim(),avance:parseInt(document.getElementById('mi-avance').value)/100};
+  if(editingImplId){const idx=impls.findIndex(i=>i.id===editingImplId);if(idx!==-1)impls[idx]=item;}
+  else impls.push(item);
+
+  // Sync a Sheets automáticamente
+  pushItemToSheets('saveImpl', item);
+
+  closeModal('modal-impl'); renderAll();
+  showToast(editingImplId?'✅ Actualizada y sincronizada':'✅ Agregada y sincronizada', 'success');
+}
+async function deleteImpl(id){
+  const item=impls.find(i=>i.id===id); if(!item) return;
+  if(!confirm(`¿Eliminar "${getEmpName(item.empId)}" del proceso "${getProcName(item.procId)}"?`)) return;
+  impls=impls.filter(i=>i.id!==id);
+  deleteItemFromSheets('deleteImpl', id);
+  renderAll(); showToast('🗑️ Eliminada y sincronizada');
+}
+
+// ===================================================================
+//  PROCESS MODAL
+// ===================================================================
+function openAddProcess(){
+  editingProcId=null;
+  document.getElementById('mp-title').textContent='🔧 Nuevo Proceso';
+  document.getElementById('mp-name').value='';
+  document.getElementById('mp-desc').value='';
+  document.getElementById('mp-color').value='#003F6E';
+  document.getElementById('modal-proc').style.display='flex';
+}
+function openEditProcess(id){
+  const p=getProc(id); if(!p) return;
+  editingProcId=id;
+  document.getElementById('mp-title').textContent='✏️ Editar Proceso';
+  document.getElementById('mp-name').value=p.name;
+  document.getElementById('mp-desc').value=p.desc||'';
+  document.getElementById('mp-color').value=p.color;
+  document.getElementById('modal-proc').style.display='flex';
+}
+async function saveProcess(){
+  const name=document.getElementById('mp-name').value.trim();
+  if(!name){showToast('⚠️ El nombre es obligatorio');return;}
+  const proc={id:editingProcId||genId('proc'),name,desc:document.getElementById('mp-desc').value.trim(),color:document.getElementById('mp-color').value};
+  if(editingProcId){const idx=processes.findIndex(p=>p.id===editingProcId);if(idx!==-1)processes[idx]=proc;}
+  else processes.push(proc);
+  pushItemToSheets('saveProcess', proc);
+  closeModal('modal-proc'); renderAll();
+  showToast(editingProcId?'✅ Proceso actualizado':'✅ Proceso creado', 'success');
+}
+async function deleteProcess(id){
+  const p=getProc(id); if(!p) return;
+  const cnt=impls.filter(i=>i.procId===id).length;
+  if(!confirm(`¿Eliminar el proceso "${p.name}"? Esto eliminará también sus ${cnt} implementación(es).`)) return;
+  processes=processes.filter(q=>q.id!==id); impls=impls.filter(i=>i.procId!==id);
+  deleteItemFromSheets('deleteProcess', id);
+  renderAll(); showToast('🗑️ Proceso eliminado');
+}
+
+// ===================================================================
+//  EMPRESA MODAL
+// ===================================================================
+function openAddEmpresa(){
+  editingEmpId=null;
+  document.getElementById('me-title').textContent='🏢 Nueva Empresa';
+  document.getElementById('me-name').value='';
+  document.getElementById('me-notes').value='';
+  document.getElementById('modal-empresa').style.display='flex';
+}
+function openEditEmpresa(id){
+  const e=getEmp(id); if(!e) return;
+  editingEmpId=id;
+  document.getElementById('me-title').textContent='✏️ Editar Empresa';
+  document.getElementById('me-name').value=e.name;
+  document.getElementById('me-notes').value=e.notes||'';
+  document.getElementById('modal-empresa').style.display='flex';
+}
+async function saveEmpresa(){
+  const name=document.getElementById('me-name').value.trim();
+  if(!name){showToast('⚠️ El nombre es obligatorio');return;}
+  const emp={id:editingEmpId||genId('emp'),name,notes:document.getElementById('me-notes').value.trim()};
+  if(editingEmpId){const idx=empresas.findIndex(e=>e.id===editingEmpId);if(idx!==-1)empresas[idx]=emp;}
+  else empresas.push(emp);
+  pushItemToSheets('saveEmpresa', emp);
+  closeModal('modal-empresa'); renderAll();
+  showToast(editingEmpId?'✅ Empresa actualizada':'✅ Empresa agregada', 'success');
+}
+async function deleteEmpresa(id){
+  const e=getEmp(id); if(!e) return;
+  const cnt=impls.filter(i=>i.empId===id).length;
+  if(!confirm(`¿Eliminar la empresa "${e.name}"?${cnt>0?' Sus '+cnt+' impl. también serán eliminadas.':''}`)) return;
+  empresas=empresas.filter(q=>q.id!==id); impls=impls.filter(i=>i.empId!==id);
+  deleteItemFromSheets('deleteEmpresa', id);
+  renderAll(); showToast('🗑️ Empresa eliminada');
+}
+
+// ===================================================================
+//  TOAST
+// ===================================================================
+function showToast(msg, type=''){
+  const el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+// ===================================================================
+//  JPG
+// ===================================================================
+async function downloadJpg(view){
+  const btnId=view==='panel'?'btn-jpg-panel':'btn-jpg-proc';
+  const btn=document.getElementById(btnId); if(!btn) return;
+  const orig=btn.textContent; btn.textContent='⏳...'; btn.disabled=true;
+
+  const now=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  const total=impls.length, done=impls.filter(i=>i.avance>=1).length;
+  const inProg=impls.filter(i=>i.avance>0&&i.avance<1).length, pending=impls.filter(i=>i.avance===0).length;
+  const avg=total?impls.reduce((s,i)=>s+i.avance,0)/total:0;
+
+  const snap=document.createElement('div');
+  snap.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1280px;background:#f5f7fa;font-family:Arial,sans-serif;';
+
+  const statsHtml=[
+    {l:'Total',v:total,c:'#003F6E'},
+    {l:'Completadas',v:done,s:total?Math.round(done/total*100)+'%':'',c:'#16a34a'},
+    {l:'En progreso',v:inProg,c:'#0072c6'},
+    {l:'Pendientes',v:pending,c:'#dc2626'},
+    {l:'Avance prom.',v:Math.round(avg*100)+'%',c:'#7c3aed'},
+  ].map(s=>`<div style="background:#fff;border-radius:10px;padding:13px 18px;flex:1;min-width:120px;border:1px solid #dde5ee">
+    <div style="font-size:10px;color:#5a7a96;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px">${s.l}</div>
+    <div style="font-size:26px;font-weight:800;color:${s.c};font-family:monospace">${s.v}</div>
+    ${s.s?`<div style="font-size:10px;color:#8aaac4;margin-top:2px">${s.s} del total</div>`:''}
+  </div>`).join('');
+
+  let bodyHtml='';
+  if(view==='panel'){
+    const secs=[
+      {title:'✅ Completadas',       items:impls.filter(i=>i.avance>=1)},
+      {title:'🔵 Avanzadas (≥75%)',  items:impls.filter(i=>i.avance>=0.75&&i.avance<1)},
+      {title:'🟡 En curso (40–74%)', items:impls.filter(i=>i.avance>=0.4&&i.avance<0.75)},
+      {title:'🟠 Iniciadas (<40%)',  items:impls.filter(i=>i.avance>0&&i.avance<0.4)},
+      {title:'⚪ Pendientes',        items:impls.filter(i=>i.avance===0)},
+    ].filter(s=>s.items.length>0);
+    bodyHtml=secs.map(s=>`
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#5a7a96;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px">${s.title} · ${s.items.length} impl.</div>
+        <div style="background:#fff;border-radius:10px;overflow:hidden;border:1px solid #dde5ee">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f0f6fb;border-bottom:1px solid #c8d6e5">
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#003F6E;text-transform:uppercase">Proceso</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#003F6E;text-transform:uppercase">Empresa</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#003F6E;text-transform:uppercase">Observaciones</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#003F6E;text-transform:uppercase">Avance</th>
+            </tr></thead>
+            <tbody>${s.items.map((item,i)=>{
+              const c=getColor(item.avance), pct=Math.round(item.avance*100), proc=getProc(item.procId);
+              return `<tr style="border-bottom:1px solid #f0f4f8;background:${i%2===0?'#fff':'#fafcfe'}">
+                <td style="padding:7px 12px;font-weight:600;color:#003F6E">${esc(proc?proc.name:item.procId)}</td>
+                <td style="padding:7px 12px;color:#2c4a63">${esc(getEmpName(item.empId))}</td>
+                <td style="padding:7px 12px;color:#5a7a96;max-width:350px;word-break:break-word;white-space:normal">${esc(item.obs)}</td>
+                <td style="padding:7px 12px">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="flex:1;background:#e4ecf4;border-radius:99px;height:6px;overflow:hidden;min-width:70px">
+                      <div style="width:${pct}%;background:${c.bar};height:100%;border-radius:99px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#003F6E;min-width:30px;text-align:right">${pct}%</span>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>
+      </div>`).join('');
+  } else {
+    bodyHtml=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      ${processes.map(proc=>{
+        const pi=impls.filter(i=>i.procId===proc.id);
+        const pavg=pi.length?pi.reduce((s,i)=>s+i.avance,0)/pi.length:0, ppct=Math.round(pavg*100);
+        return `<div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #dde5ee;border-top:3px solid ${proc.color}">
+          <div style="padding:11px 14px 9px;background:#f0f6fb;border-bottom:1px solid #e4ecf4">
+            <div style="font-size:13px;font-weight:700;color:#003F6E">${esc(proc.name)}</div>
+            <div style="font-size:10px;color:#5a7a96;margin-top:2px">${pi.length} impl · ${ppct}% promedio</div>
+          </div>
+          <div style="padding:10px 14px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+              <div style="flex:1;background:#e4ecf4;border-radius:99px;height:7px;overflow:hidden">
+                <div style="width:${ppct}%;background:${proc.color};height:100%;border-radius:99px"></div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:#003F6E;font-family:monospace">${ppct}%</span>
+            </div>
+            ${pi.map(item=>{
+              const c=getColor(item.avance), ip=Math.round(item.avance*100);
+              return `<div style="display:flex;align-items:center;gap:6px;padding:4px 7px;margin-bottom:3px;background:#f5f7fa;border-radius:6px">
+                <span style="width:7px;height:7px;border-radius:50%;background:${c.bar};flex-shrink:0;display:inline-block"></span>
+                <span style="font-size:12px;font-weight:600;color:#2c4a63;flex:1">${esc(getEmpName(item.empId))}</span>
+                <span style="font-size:11px;font-weight:700;color:#003F6E;font-family:monospace">${ip}%</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  snap.innerHTML=`
+    <div style="background:#003F6E;padding:24px 36px 20px;color:#fff">
+      <div style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.55);font-weight:700;text-transform:uppercase;margin-bottom:4px">📋 Panel de Gestión</div>
+      <div style="font-size:22px;font-weight:800">Proyectos / Automatizaciones</div>
+      <div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,0.6)">Exportado el ${now} · Avance global: <strong style="color:#fff">${Math.round(avg*100)}%</strong></div>
+    </div>
+    <div style="display:flex;gap:10px;padding:16px 36px 0;flex-wrap:wrap">${statsHtml}</div>
+    <div style="padding:14px 36px 28px">${bodyHtml}</div>`;
+
+  document.body.appendChild(snap);
+  try {
+    const canvas=await html2canvas(snap,{scale:2,useCORS:true,backgroundColor:'#f5f7fa',logging:false});
+    const link=document.createElement('a');
+    link.download=`PA_${view}_${new Date().toISOString().slice(0,10)}.jpg`;
+    link.href=canvas.toDataURL('image/jpeg',0.92);
+    link.click();
+    showToast('✅ Imagen descargada', 'success');
+  } catch(e){ showToast('⚠️ Error al generar la imagen', 'error'); }
+  finally {
+    document.body.removeChild(snap);
+    btn.textContent=orig; btn.disabled=false;
+  }
+}
+
+// ===================================================================
+//  EXPORT / IMPORT XLSX
+// ===================================================================
+function handleExport(){
+  const wd=[['Proceso','Empresa/Módulo','Observaciones','Avance (0-1)'],...impls.map(i=>[getProcName(i.procId),getEmpName(i.empId),i.obs,i.avance])];
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(wd);
+  ws['!cols']=[{wch:30},{wch:25},{wch:55},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Implementaciones');
+  XLSX.writeFile(wb,'Proyectos_Automatizaciones.xlsx');
+  showToast('✅ Exportado a xlsx');
+}
+function handleImport(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+      if(!rows||rows.length<2){showToast('⚠️ Archivo sin datos válidos','error');return;}
+
+      // Detectar fila de encabezado (saltar filas vacías)
+      let startRow=1;
+      const header=rows[0].map(h=>String(h).toLowerCase());
+      if(!header.some(h=>h.includes('proceso')||h.includes('empresa'))){
+        showToast('⚠️ No se encontró encabezado válido (Proceso, Empresa)','error'); return;
+      }
+
+      // Mapear columnas por nombre (flexible)
+      const colProceso = header.findIndex(h=>h.includes('proceso'));
+      const colEmpresa = header.findIndex(h=>h.includes('empresa')||h.includes('módulo')||h.includes('modulo'));
+      const colObs     = header.findIndex(h=>h.includes('obs')||h.includes('estado'));
+      const colAvance  = header.findIndex(h=>h.includes('avance'));
+
+      if(colProceso===-1||colEmpresa===-1){
+        showToast('⚠️ El archivo debe tener columnas "Proceso" y "Empresa/Módulo"','error'); return;
+      }
+
+      // Reconstruir todo desde cero para evitar IDs inconsistentes
+      const newProcesses=[];
+      const newEmpresas=[];
+      const newImpls=[];
+
+      // Paleta de colores para nuevos procesos
+      const palette=['#003F6E','#0072c6','#b45309','#c2410c','#7c3aed','#dc2626','#16a34a','#0891b2','#db2777'];
+      let palIdx=0;
+
+      rows.slice(startRow).forEach((r,idx)=>{
+        const pn=String(r[colProceso]||'').trim();
+        const en=String(r[colEmpresa]||'').trim();
+        if(!pn||!en) return; // saltar filas vacías
+
+        const obs   = colObs>-1    ? String(r[colObs]||'').trim()                        : '';
+        const avance= colAvance>-1 ? Math.min(1,Math.max(0,parseFloat(r[colAvance])||0)) : 0;
+
+        // Reutilizar proceso existente (por nombre) o crear uno nuevo
+        let proc = newProcesses.find(p=>p.name.toLowerCase()===pn.toLowerCase());
+        if(!proc){
+          // Intentar conservar ID y color del proceso original si ya existe
+          const existing = processes.find(p=>p.name.toLowerCase()===pn.toLowerCase());
+          proc = existing
+            ? {...existing}
+            : {id:genId('proc'), name:pn, desc:'', color:palette[palIdx++%palette.length]};
+          newProcesses.push(proc);
+        }
+
+        // Reutilizar empresa existente (por nombre) o crear una nueva
+        let emp = newEmpresas.find(e=>e.name.toLowerCase()===en.toLowerCase());
+        if(!emp){
+          const existing = empresas.find(e=>e.name.toLowerCase()===en.toLowerCase());
+          emp = existing
+            ? {...existing}
+            : {id:genId('emp'), name:en, notes:''};
+          newEmpresas.push(emp);
+        }
+
+        newImpls.push({
+          id: genId('i'),
+          procId: proc.id,
+          empId:  emp.id,
+          obs,
+          avance
+        });
+      });
+
+      if(!newImpls.length){showToast('⚠️ No se encontraron filas con datos válidos','error');return;}
+
+      // Reemplazar estado global
+      processes = newProcesses;
+      empresas  = newEmpresas;
+      impls     = newImpls;
+
+      // Forzar re-render completo
+      switchView(currentView);
+      showToast(`✅ Importadas ${newImpls.length} implementaciones, ${newProcesses.length} procesos, ${newEmpresas.length} empresas`, 'success');
+
+    } catch(err){
+      console.error(err);
+      showToast('⚠️ Error al leer el archivo: '+err.message,'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
+}
+
+// ===================================================================
+//  INIT
+// ===================================================================
+setTopbarActions('panel');
+renderBanner();
+renderAll();
+setupAutoSync();
+if(getSheetsUrl()) updateSyncStatus('none', 'Conectado (no sincronizado)');
+</script>
+</body>
+</html>
