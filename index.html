@@ -288,6 +288,7 @@
         <button class="nav-item" onclick="handleExport()">              <span>↓</span>  Exportar xlsx</button>
         <button class="nav-item" onclick="document.getElementById('fileInput').click()"><span>↑</span> Importar xlsx</button>
         <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)"/>
+        <button class="nav-item" onclick="resetLocalData()" style="color:rgba(255,100,100,0.8)"><span>🔄</span> Resetear datos locales</button>
       </div>
     </nav>
   </aside>
@@ -595,6 +596,7 @@ async function syncFromSheets() {
     if (d.processes?.length) processes = d.processes.map(p=>({id:String(p.id),name:p.name,desc:p.desc||'',color:p.color||'#003F6E'}));
     if (d.empresas?.length)  empresas  = d.empresas.map(e=>({id:String(e.id),name:e.name,notes:e.notes||''}));
     if (d.impls?.length)     impls     = d.impls.map(i=>({id:String(i.id),procId:String(i.procId),empId:String(i.empId),obs:i.obs||'',avance:parseFloat(i.avance)||0}));
+    saveToStorage();
     renderAll();
     updateSyncStatus('ok', 'Importado de Sheets');
     showToast(`✅ Importado: ${impls.length} impls, ${processes.length} procesos, ${empresas.length} empresas`, 'success');
@@ -1019,7 +1021,7 @@ async function saveImpl(){
     if(!nn){showToast('⚠️ Ingresá el nombre de la empresa');return;}
     const ne={id:genId('emp'),name:nn,notes:''};
     empresas.push(ne); empId=ne.id;
-    // Sync nueva empresa a Sheets
+    saveToStorage();
     pushItemToSheets('saveEmpresa', ne);
   }
   if(!procId||!empId){showToast('⚠️ Proceso y Empresa son obligatorios');return;}
@@ -1027,7 +1029,7 @@ async function saveImpl(){
   if(editingImplId){const idx=impls.findIndex(i=>i.id===editingImplId);if(idx!==-1)impls[idx]=item;}
   else impls.push(item);
 
-  // Sync a Sheets automáticamente
+  saveToStorage();
   pushItemToSheets('saveImpl', item);
 
   closeModal('modal-impl'); renderAll();
@@ -1037,6 +1039,7 @@ async function deleteImpl(id){
   const item=impls.find(i=>i.id===id); if(!item) return;
   if(!confirm(`¿Eliminar "${getEmpName(item.empId)}" del proceso "${getProcName(item.procId)}"?`)) return;
   impls=impls.filter(i=>i.id!==id);
+  saveToStorage();
   deleteItemFromSheets('deleteImpl', id);
   renderAll(); showToast('🗑️ Eliminada y sincronizada');
 }
@@ -1067,6 +1070,7 @@ async function saveProcess(){
   const proc={id:editingProcId||genId('proc'),name,desc:document.getElementById('mp-desc').value.trim(),color:document.getElementById('mp-color').value};
   if(editingProcId){const idx=processes.findIndex(p=>p.id===editingProcId);if(idx!==-1)processes[idx]=proc;}
   else processes.push(proc);
+  saveToStorage();
   pushItemToSheets('saveProcess', proc);
   closeModal('modal-proc'); renderAll();
   showToast(editingProcId?'✅ Proceso actualizado':'✅ Proceso creado', 'success');
@@ -1076,6 +1080,7 @@ async function deleteProcess(id){
   const cnt=impls.filter(i=>i.procId===id).length;
   if(!confirm(`¿Eliminar el proceso "${p.name}"? Esto eliminará también sus ${cnt} implementación(es).`)) return;
   processes=processes.filter(q=>q.id!==id); impls=impls.filter(i=>i.procId!==id);
+  saveToStorage();
   deleteItemFromSheets('deleteProcess', id);
   renderAll(); showToast('🗑️ Proceso eliminado');
 }
@@ -1104,6 +1109,7 @@ async function saveEmpresa(){
   const emp={id:editingEmpId||genId('emp'),name,notes:document.getElementById('me-notes').value.trim()};
   if(editingEmpId){const idx=empresas.findIndex(e=>e.id===editingEmpId);if(idx!==-1)empresas[idx]=emp;}
   else empresas.push(emp);
+  saveToStorage();
   pushItemToSheets('saveEmpresa', emp);
   closeModal('modal-empresa'); renderAll();
   showToast(editingEmpId?'✅ Empresa actualizada':'✅ Empresa agregada', 'success');
@@ -1113,6 +1119,7 @@ async function deleteEmpresa(id){
   const cnt=impls.filter(i=>i.empId===id).length;
   if(!confirm(`¿Eliminar la empresa "${e.name}"?${cnt>0?' Sus '+cnt+' impl. también serán eliminadas.':''}`)) return;
   empresas=empresas.filter(q=>q.id!==id); impls=impls.filter(i=>i.empId!==id);
+  saveToStorage();
   deleteItemFromSheets('deleteEmpresa', id);
   renderAll(); showToast('🗑️ Empresa eliminada');
 }
@@ -1343,6 +1350,7 @@ function handleImport(e){
       empresas  = newEmpresas;
       impls     = newImpls;
 
+      saveToStorage();
       // Forzar re-render completo
       switchView(currentView);
       showToast(`✅ Importadas ${newImpls.length} implementaciones, ${newProcesses.length} procesos, ${newEmpresas.length} empresas`, 'success');
@@ -1357,13 +1365,34 @@ function handleImport(e){
 }
 
 // ===================================================================
+//  RESET — borra localStorage y vuelve a defaults
+// ===================================================================
+function resetLocalData() {
+  if (!confirm('⚠️ Esto borra todos los cambios locales y vuelve a los datos por defecto.\n¿Seguro?')) return;
+  localStorage.removeItem('pa_data');
+  processes = JSON.parse(JSON.stringify(DEFAULT_PROCESSES));
+  empresas  = JSON.parse(JSON.stringify(DEFAULT_EMPRESAS));
+  impls     = JSON.parse(JSON.stringify(DEFAULT_IMPLS));
+  switchView(currentView);
+  showToast('🔄 Datos reseteados a valores por defecto');
+}
+
+// ===================================================================
 //  INIT
 // ===================================================================
 setTopbarActions('panel');
 renderBanner();
 renderAll();
 setupAutoSync();
-if(getSheetsUrl()) updateSyncStatus('none', 'Conectado (no sincronizado)');
+if (getSheetsUrl()) {
+  updateSyncStatus('none', 'Conectado — sincronizando...');
+  // Auto-importar de Sheets al cargar si hay URL configurada
+  syncFromSheets().catch(() => {
+    updateSyncStatus('none', 'Conectado (sin sync al cargar)');
+  });
+} else {
+  updateSyncStatus('none', 'Sin conectar');
+}
 </script>
 </body>
 </html>
