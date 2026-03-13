@@ -481,7 +481,28 @@
 
 <script>
 // ===================================================================
-//  DATOS INICIALES
+//  PERSISTENCIA LOCAL
+// ===================================================================
+function saveToStorage() {
+  try {
+    localStorage.setItem('pa_data', JSON.stringify({ processes, empresas, impls, _ts: Date.now() }));
+  } catch(e) { console.warn('Error guardando localStorage', e); }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem('pa_data');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (Array.isArray(d.processes) && d.processes.length) processes = d.processes;
+      if (Array.isArray(d.empresas)  && d.empresas.length)  empresas  = d.empresas;
+      if (Array.isArray(d.impls)     && d.impls.length)     impls     = d.impls;
+    }
+  } catch(e) { console.warn('Error leyendo localStorage', e); }
+}
+
+// ===================================================================
+//  DATOS INICIALES (defaults; sobreescritos por localStorage al init)
 // ===================================================================
 let processes = [
   { id:"proc_1", name:"Conciliación y Arqueo",     desc:"Conciliación contable y arqueo de caja", color:"#003F6E" },
@@ -534,6 +555,8 @@ let impls = [
   { id:"i19", procId:"proc_8", empId:"emp_15", obs:"Voy a ir armándolo junto con el grupo del curso",    avance:0    },
   { id:"i20", procId:"proc_9", empId:"emp_16", obs:"Tengo que ver cómo automatizarlo en el servidor",    avance:0    },
 ];
+// Sobreescribir con datos guardados si existen
+loadFromStorage();
 
 // ===================================================================
 //  GOOGLE SHEETS — CONFIG Y ESTADO
