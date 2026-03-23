@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersAdministradorDesktopCiafAutomatizacionestareaspython -type f \\\\\\(-name .cursor* -o -name *.php -o -name *.js -o -name *.sh \\\\\\))"
+    ]
+  }
+}
